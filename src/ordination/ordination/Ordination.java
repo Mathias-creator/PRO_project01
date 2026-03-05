@@ -46,12 +46,13 @@ public abstract class Ordination {
      * @return antal dage ordinationen gælder for
      */
     public int antalDage() {
+        // vi har +1 på fordi ChronoUnit.DAYS. ikke tæller slutdato med
         return (int) ChronoUnit.DAYS.between(startDen, slutDen) + 1;
     }
 
     @Override
     public String toString() {
-        return startDen.toString();
+        return "Ordination fra " + startDen + "til " + slutDen + " - " + laegemiddel.getNavn();
     }
 
     /**
