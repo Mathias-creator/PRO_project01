@@ -1,10 +1,17 @@
 package ordination.ordination;
 
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 
-public class PN {
+public class PN extends Ordination {
 
-    private double antalEnheder;
+    private final double antalEnheder;
+    private final ArrayList<LocalDate> anvendteDatoer = new ArrayList<>();
+    public PN(LocalDate startDen, LocalDate slutDen, Patient patient, Laegemiddel laegemiddel, double antalEnheder) {
+        super(startDen, slutDen, patient, laegemiddel);
+        this.antalEnheder = antalEnheder;
+    }
 
     /**
      * Registrerer at der er givet en dosis paa dagen givesDen
@@ -13,20 +20,48 @@ public class PN {
      * @param givesDen
      * @return
      */
+
+
     public boolean givDosis(LocalDate givesDen) {
         // TODO
-        return false;   
+        if ((givesDen.isBefore(getStartDen()) || givesDen.isAfter(getSlutDen()))) {
+            throw new  IllegalArgumentException("Dato ligger uden for ordinationsperiode");
+
+        } else {
+
+            anvendteDatoer.add(givesDen);
+        }
+        return true;
     }
 
+
     public double doegnDosis() {
-        // TODO
-        return 0.0;
+        if (anvendteDatoer.isEmpty()){
+            return 0.;
+        }
+
+        LocalDate foerst = anvendteDatoer.getFirst();
+        LocalDate sidste = anvendteDatoer.getLast();
+
+
+        for (LocalDate dato : anvendteDatoer){
+           if (dato.isBefore(foerst)) foerst = dato;
+           if (dato.isAfter(sidste)) sidste = dato;
+        }
+
+        double dage = ChronoUnit.DAYS.between(foerst,sidste) + 1;
+        return samletDosis()/dage;
+    }
+
+    @Override
+    public String getType() {
+        return "PN";
     }
 
 
     public double samletDosis() {
-        // TODO
-        return 0.0;
+        // TODO Done
+        return antalEnheder* getAntalGangeGivet();
     }
 
     /**
@@ -34,8 +69,8 @@ public class PN {
      * @return
      */
     public int getAntalGangeGivet() {
-        // TODO
-        return-1;
+        // TODO Done
+        return anvendteDatoer.size();
     }
 
     public double getAntalEnheder() {

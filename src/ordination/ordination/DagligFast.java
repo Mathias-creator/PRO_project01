@@ -3,18 +3,19 @@ package ordination.ordination;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
-public class DagligFast {
+public class DagligFast extends Ordination {
     // TODO
     // fast array med 4 doser: [morgen, middag, aften, nat]
     private Dosis[] doser = new Dosis[4];
 
-    public DagligFast(LocalDate startDen, LocalDate slutDen, Patient patient, Laegemiddel laegemiddel, double morgenAntal,double middagAntal, double aftenAntal, double natAntal) {
-        super();
+    public DagligFast(LocalDate startDen, LocalDate slutDen, Patient patient, Laegemiddel laegemiddel,
+                      double morgenAntal,double middagAntal, double aftenAntal, double natAntal) {
+        super(startDen,slutDen,patient,laegemiddel);
         LocalTime[] tider = {
                 LocalTime.of(8, 0),  //morgen
                 LocalTime.of(12, 0), //middag
                 LocalTime.of(18, 0), //aften
-                LocalTime.of(24, 0), //nat
+                LocalTime.of(23, 0), //nat
         };
 
         double[] mængder = {morgenAntal, middagAntal, aftenAntal, natAntal};
@@ -43,4 +44,19 @@ public class DagligFast {
         }
         return totalPrDag;
     }
+
+    @Override
+    public String getType() {
+        return "Daglig fast";
+    }
+
+    public void addDoser(Dosis MorgenAntal, Dosis middagAntal, Dosis aftenAntal, Dosis natAntal){
+
+    doser[0] = MorgenAntal;
+    doser[1] = middagAntal;
+    doser[2] = aftenAntal;
+    doser[3] = natAntal;
+
+    }
+
 }

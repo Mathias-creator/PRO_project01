@@ -2,13 +2,10 @@ package ordination.controller;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.List;
 
-import ordination.ordination.DagligFast;
-import ordination.ordination.DagligSkaev;
-import ordination.ordination.Laegemiddel;
-import ordination.ordination.PN;
-import ordination.ordination.Patient;
+import ordination.ordination.*;
 import ordination.storage.Storage;
 
 public class Controller {
@@ -39,8 +36,20 @@ public class Controller {
 	 */
 	public PN opretPNOrdination(LocalDate startDen, LocalDate slutDen,
 			Patient patient, Laegemiddel laegemiddel, double antal) {
-		// TODO
-		return null;
+		// TODO Done
+		if (startDen.isAfter(slutDen)){
+
+		throw new IllegalArgumentException("Start dato må ikke være efter slut dato");
+		}
+
+		if(antal <= 0) {
+
+			throw new IllegalArgumentException("antal på ordinentet må ikke være negativ");
+		}
+
+		PN pn = new PN(startDen,slutDen, patient,laegemiddel,antal);
+		patient.addOrdination(pn);
+		return pn;
 	}
 
 	/**
@@ -53,8 +62,32 @@ public class Controller {
 			LocalDate slutDen, Patient patient, Laegemiddel laegemiddel,
 			double morgenAntal, double middagAntal, double aftenAntal,
 			double natAntal) {
-		// TODO
-		return null;
+		// TODO Done
+
+		if (startDen.isAfter(slutDen)){
+
+			throw new IllegalArgumentException("Start dato må ikke være efter slut dato");
+		}
+
+		if (morgenAntal < 0 || middagAntal < 0 || aftenAntal <0 || natAntal <0 ) {
+			throw new IllegalArgumentException("antal på ordinent må ikke være negativt");
+
+		}
+
+		DagligFast df = new DagligFast(startDen,slutDen,patient,laegemiddel,
+				morgenAntal,middagAntal,aftenAntal,natAntal);
+
+		df.addDoser(
+				new Dosis(LocalTime.of(8, 0), morgenAntal),  //morgen
+				new Dosis(LocalTime.of(12, 0),middagAntal), //middag
+				new Dosis(LocalTime.of(18, 0),aftenAntal), //aften
+				new Dosis(LocalTime.of(23, 0),natAntal)   //nat
+
+
+		);
+
+		patient.addOrdination(df);
+		return df;
 	}
 
 	/**
@@ -68,19 +101,28 @@ public class Controller {
 	public DagligSkaev opretDagligSkaevOrdination(LocalDate startDen,
 			LocalDate slutDen, Patient patient, Laegemiddel laegemiddel,
 			LocalTime[] klokkeSlet, double[] antalEnheder) {
-		// TODO
-		return null;
+		// TODO Done
+
+		if (startDen.isAfter(slutDen)){
+			throw new IllegalArgumentException("Start dato må ikke være efter slut dato");
+		}
+		if (klokkeSlet.length != antalEnheder.length){
+		 throw new IllegalArgumentException("Antal dage og antal ender er ikke ens");
+		}
+
+		for (double antal : antalEnheder) {
+			if (antal <= 0) {
+				throw new IllegalArgumentException("antal enheder skal være større end eller lig med 0");
+			}
+		}
+		DagligSkaev dagligSkaev = new DagligSkaev(startDen, slutDen, patient, laegemiddel);
+		for (int i = 0; i < klokkeSlet.length; i++) {
+			dagligSkaev.opretDosis(klokkeSlet[i], antalEnheder[i]);
+		}
+		return dagligSkaev;
 	}
 
-	/**
-	 * En dato for hvornår ordinationen anvendes tilføjes ordinationen. Hvis
-	 * datoen ikke er indenfor ordinationens gyldighedsperiode kastes en
-	 * IllegalArgumentException
-	 * Pre: ordination og dato er ikke null
-	 */
-	public void ordinationPNAnvendt(PN ordination, LocalDate dato) {
-		// TODO
-	}
+
 
 	/**
 	 * Den anbefalede dosis for den pågældende patient (der skal tages hensyn
@@ -88,20 +130,41 @@ public class Controller {
 	 * anvendes, og den er afhængig af patientens vægt.
 	 * Pre: patient og lægemiddel er ikke null
 	 */
-	public double anbefaletDosisPrDoegn(Patient patient, Laegemiddel laegemiddel) {
-		//TODO
-		return 0;
+	public void ordinationPNAnvendt(PN ordination, LocalDate dato) {
+		if (dato.isBefore(ordination.getStartDen()) || dato.isAfter(ordination.getSlutDen())) {
+			throw new IllegalArgumentException("Datoen ligger uden for ordinationens gyldighedsperiode");
+		}
+		ordination.givDosis(dato);
 	}
 
-	/**
-	 * For et givent vægtinterval og et givent lægemiddel, hentes antallet af
-	 * ordinationer.
-	 * Pre: laegemiddel er ikke null
-	 */
+    /*
+	Den anbefalede dosis for den pågældende patient (der skal tages hensyn
+			til patientens vægt). Det er en forskellig enheds faktor der skal
+	anvendes, og den er afhængig af patientens vægt.
+			Pre: patient og lægemiddel er ikke null*/
+	public double anbefaletDosisPrDoegn(Patient patient, Laegemiddel laegemiddel) {
+		double faktor = switch (patient.getVaegt() < 25 ? "let" : patient.getVaegt() > 120 ? "tung" : "normal") {
+			case "let" -> laegemiddel.getEnhedPrKgPrDoegnLet();
+			case "tung" -> laegemiddel.getEnhedPrKgPrDoegnTung();
+			default -> laegemiddel.getEnhedPrKgPrDoegnNormal();};
+		return faktor * patient.getVaegt();}
+
+    /* For et givent vægtinterval og et givent lægemiddel, hentes antallet af
+	ordinationer.
+	Pre: laegemiddel er ikke null*/
 	public int antalOrdinationerPrVægtPrLægemiddel(double vægtStart,
-			double vægtSlut, Laegemiddel laegemiddel) {
-		// TODO
-		return 0;
+												   double vægtSlut, Laegemiddel laegemiddel) {
+		int count = 0;
+		for (Patient patient : storage.getAllPatienter()) {
+			if (patient.getVaegt() >= vægtStart && patient.getVaegt() <= vægtSlut) {
+				for (Ordination ordination : patient.getOrdinationer()) {
+					if (ordination.getLaegemiddel().equals(laegemiddel)) {
+						count++;
+					}
+				}
+			}
+		}
+		return count;
 	}
 
 	public List<Patient> getAllPatienter() {
